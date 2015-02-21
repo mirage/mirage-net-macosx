@@ -62,7 +62,7 @@ let connect devname =
       id=devname; dev; active; mac; buf_sz;
       stats= { rx_bytes=0L;rx_pkts=0l;
                tx_bytes=0L; tx_pkts=0l };
-      buf=Io_page.to_cstruct (Lwt_bytes.create 0) } in
+      buf=Io_page.to_cstruct (Io_page.get 1) } in
     Hashtbl.add devices devname t;
     printf "Netif: connect %s\n%!" devname;
     return (`Ok t)
