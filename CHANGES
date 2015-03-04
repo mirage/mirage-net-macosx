@@ -1,2 +1,6 @@
+1.1.0 (04-03-2015):
+- Add an explicit `connect` function to interface (#1).
+- Support the `Io_page` 1.4.0+ API. (#2).
+
 1.0.0 (01-12-2014):
 - Initial public release.
