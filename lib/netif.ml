@@ -31,7 +31,7 @@ type stats = {
   mutable rx_bytes : int64;
   mutable rx_pkts : int32;
   mutable tx_bytes : int64;
-  mutable tx_pkts : int32; 
+  mutable tx_pkts : int32;
 }
 
 type t = {
@@ -62,7 +62,7 @@ let connect devname =
       id=devname; dev; active; mac; buf_sz;
       stats= { rx_bytes=0L;rx_pkts=0l;
                tx_bytes=0L; tx_pkts=0l };
-      buf=Io_page.to_cstruct (Lwt_bytes.create 0) } in
+      buf=Io_page.to_cstruct (Io_page.get 1) } in
     Hashtbl.add devices devname t;
     printf "Netif: connect %s\n%!" devname;
     return (`Ok t)
@@ -103,25 +103,25 @@ let rec listen t fn =
           return ()
         | `Ok buf ->
           ignore_result (
-            try_lwt 
+            try_lwt
               fn buf
             with exn ->
               return (printf "EXN: %s bt: %s\n%!" (Printexc.to_string exn) (Printexc.get_backtrace()))
           );
           listen t fn
-      with 
-      | exn -> 
+      with
+      | exn ->
         let _ = eprintf "[netif-input] error : %s\n%!" (Printexc.to_string exn ) in
-        let _ = t.buf <- (Cstruct.create 0) in 
-        listen t fn 
+        let _ = t.buf <- (Cstruct.create 0) in
+        listen t fn
     end
   | false -> return_unit
 
 (* Transmit a packet from an Io_page *)
 let write t page =
   Lwt_vmnet.write t.dev page >>= fun () ->
-  t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts; 
-  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len); 
+  t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
+  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len);
   return_unit
 
 (* TODO use writev: but do a copy for now *)
