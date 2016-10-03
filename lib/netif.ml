@@ -18,7 +18,6 @@ open Lwt
 open Printf
 
 type +'a io = 'a Lwt.t
-type id = string
 
 (** IO operation errors *)
 type error = [
@@ -35,7 +34,7 @@ type stats = {
 }
 
 type t = {
-  id: id;
+  id: string;
   buf_sz: int;
   mutable active: bool;
   mac: Macaddr.t;
@@ -44,7 +43,7 @@ type t = {
 }
 
 type vif_info = {
-  vif_id: id;
+  vif_id: string;
   vif_fd: Unix.file_descr;
 }
 
@@ -133,8 +132,6 @@ let writev t pages =
       ) pages;
     let v = Cstruct.sub page 0 !off in
     write t v
-
-let id t = t.id
 
 let mac t = t.mac
 
