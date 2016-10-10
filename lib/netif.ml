@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Lwt
+open Lwt.Infix
 open Printf
 
 type +'a io = 'a Lwt.t
@@ -66,7 +66,7 @@ let connect devname =
 let disconnect t =
   printf "Netif: disconnect %s\n%!" t.id;
   (* TODO *)
-  return_unit
+  Lwt.return_unit
 
 type macaddr = Macaddr.t
 type page_aligned_buffer = Io_page.t
@@ -76,53 +76,50 @@ let macaddr t = t.mac
 
 (* Input a frame, and block if nothing is available *)
 let read t page =
-  try_lwt
-    Lwt_vmnet.read t.dev page
-    >>= fun c -> return (`Ok c)
-  with
-    Lwt_vmnet.Error e ->
-      Printf.printf "read: %s\n%!" (Sexplib.Sexp.to_string_hum (Lwt_vmnet.sexp_of_error e));
-      return (`Error `Disconnected)
+  Lwt.catch (fun () -> Lwt_vmnet.read t.dev page >|= fun c -> `Ok c)
+    (function
+      | Lwt_vmnet.Error e ->
+        Printf.printf "read: %s\n%!"
+          (Sexplib.Sexp.to_string_hum (Lwt_vmnet.sexp_of_error e));
+        Lwt.return (`Error `Disconnected)
+      | e -> Lwt.fail e)
 
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
   match t.active with
-  | true -> begin
-      try_lwt
+  | true ->
+    Lwt.catch (fun () ->
         let page = Io_page.get_buf () in
-        read t page
-        >>= function
+        read t page >>= function
         | `Error _ ->
           printf "Netif: error, terminating listen loop\n%!";
-          return ()
+          Lwt.return ()
         | `Ok buf ->
-          ignore_result (
-            try_lwt
-              fn buf
-            with exn ->
-              return (printf "EXN: %s bt: %s\n%!" (Printexc.to_string exn) (Printexc.get_backtrace()))
+          Lwt.ignore_result (
+            Lwt.catch (fun () -> fn buf)
+              (fun exn ->
+                 Lwt.return
+                   (printf "EXN: %s bt: %s\n%!" (Printexc.to_string exn)
+                      (Printexc.get_backtrace())))
           );
           listen t fn
-      with
-      | exn ->
-        let _ = eprintf "[netif-input] error : %s\n%!" (Printexc.to_string exn ) in
-        listen t fn
-    end
-  | false -> return_unit
+      ) (function exn ->
+        eprintf "[netif-input] error : %s\n%!" (Printexc.to_string exn);
+        listen t fn)
+  | false -> Lwt.return_unit
 
 (* Transmit a packet from an Io_page *)
 let write t page =
-  Lwt_vmnet.write t.dev page >>= fun () ->
+  Lwt_vmnet.write t.dev page >|= fun () ->
   t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
-  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len);
-  return_unit
+  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len)
 
 (* TODO use writev: but do a copy for now *)
 let writev t pages =
   match pages with
-  | [] -> return_unit
+  | []     -> Lwt.return_unit
   | [page] -> write t page
-  | pages ->
+  | pages  ->
     let page = Io_page.(to_cstruct (get 1)) in
     let off = ref 0 in
     List.iter (fun p ->
