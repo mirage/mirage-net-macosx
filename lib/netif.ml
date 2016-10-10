@@ -50,7 +50,7 @@ type vif_info = {
 let devices = Hashtbl.create 1
 
 let connect devname =
-  Lwt_vmnet.init () >>= fun dev ->
+  Lwt_vmnet.init () >|= fun dev ->
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
   let active = true in
@@ -61,7 +61,7 @@ let connect devname =
              tx_bytes=0L; tx_pkts=0l }; } in
   Hashtbl.add devices devname t;
   printf "Netif: connect %s\n%!" devname;
-  return (`Ok t)
+  t
 
 let disconnect t =
   printf "Netif: disconnect %s\n%!" t.id;
