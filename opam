@@ -16,7 +16,6 @@ depends: [
   "ocamlfind" {build}
   "cstruct" {>= "1.4.0"}
   "sexplib"
-  "ocamlfind"
   "lwt" {>= "2.4.3"}
   "mirage-types-lwt"
   "io-page" {>= "1.4.0"}

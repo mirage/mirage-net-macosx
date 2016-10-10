@@ -27,4 +27,3 @@ true: annot, bin_annot
 <lib/*.ml{,i,y}>: pkg_vmnet.lwt
 # OASIS_STOP
 true: debug, annot, bin_annot
-true: syntax_camlp4o, pkg_lwt.syntax
