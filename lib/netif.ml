@@ -43,14 +43,9 @@ type t = {
   dev: Lwt_vmnet.t;
 }
 
-type vif_info = {
-  vif_id: id;
-  vif_fd: Unix.file_descr;
-}
-
 let devices = Hashtbl.create 1
 
-let connect devname =
+let connect _ =
   Lwt_vmnet.init () >|= fun dev ->
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
@@ -72,8 +67,6 @@ let disconnect t =
 type macaddr = Macaddr.t
 type page_aligned_buffer = Io_page.t
 type buffer = Cstruct.t
-
-let macaddr t = t.mac
 
 (* Input a frame, and block if nothing is available *)
 let read t page =
@@ -130,8 +123,6 @@ let writev t pages =
       ) pages;
     let v = Cstruct.sub page 0 !off in
     write t v
-
-let id t = t.id
 
 let mac t = t.mac
 
