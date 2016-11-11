@@ -1,15 +1,3 @@
-*.annot
-*.cmo
-*.cma
-*.cmi
-*.a
-*.o
-*.cmx
-*.cmt
-*.cmxs
-*.cmxa
-setup.bin
-setup.data
-setup.log
 _build
-*.native
+mirage-net-macosx.install
+*~
