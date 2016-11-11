@@ -1,0 +1,7 @@
+version = "%%VERSION_NUM%%"
+description = "Mirage network driver for MacOS X"
+requires = "cstruct lwt lwt.unix mirage-types vmnet.lwt io-page io-page.unix ipaddr threads"
+archive(byte)   = "mirage-net-macosx.cma"
+archive(native) = "mirage-net-macosx.cmxa"
+plugin(byte)    = "mirage-net-macosx.cma"
+plugin(archive) = "mirage-net-macosx.cmxs"
