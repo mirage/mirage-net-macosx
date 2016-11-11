@@ -45,19 +45,22 @@ type t = {
 
 let devices = Hashtbl.create 1
 
-let connect _ =
-  Lwt_vmnet.init () >|= fun dev ->
-  let devname = "unknown" in (* TODO fix *)
-  let mac = Lwt_vmnet.mac dev in
-  let active = true in
-  let buf_sz = 4096 in (* TODO get from vmnet *)
-  let t = {
-    id=devname; dev; active; mac; buf_sz;
-    stats= { rx_bytes=0L;rx_pkts=0l;
-             tx_bytes=0L; tx_pkts=0l }; } in
-  Hashtbl.add devices devname t;
-  printf "Netif: connect %s\n%!" devname;
-  t
+let connect devname =
+  try
+    Lwt_vmnet.init () >>= fun dev ->
+    let devname = "unknown" in (* TODO fix *)
+    let mac = Lwt_vmnet.mac dev in
+    let active = true in
+    let buf_sz = 4096 in (* TODO get from vmnet *)
+    let t = {
+      id=devname; dev; active; mac; buf_sz;
+      stats= { rx_bytes=0L;rx_pkts=0l;
+               tx_bytes=0L; tx_pkts=0l }; } in
+    Hashtbl.add devices devname t;
+    printf "Netif: connect %s\n%!" devname;
+    return (`Ok t)
+  with
+    exn -> return (`Error (`Unknown (Printexc.to_string exn)))
 
 let disconnect t =
   printf "Netif: disconnect %s\n%!" t.id;
