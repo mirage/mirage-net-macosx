@@ -45,7 +45,7 @@ type t = {
 
 let devices = Hashtbl.create 1
 
-let connect devname =
+let connect _devname =
   try
     Lwt_vmnet.init () >>= fun dev ->
     let devname = "unknown" in (* TODO fix *)
@@ -58,9 +58,9 @@ let connect devname =
                tx_bytes=0L; tx_pkts=0l }; } in
     Hashtbl.add devices devname t;
     printf "Netif: connect %s\n%!" devname;
-    return (`Ok t)
+    Lwt.return (`Ok t)
   with
-    exn -> return (`Error (`Unknown (Printexc.to_string exn)))
+    exn -> Lwt.return (`Error (`Unknown (Printexc.to_string exn)))
 
 let disconnect t =
   printf "Netif: disconnect %s\n%!" t.id;
