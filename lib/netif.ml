@@ -18,6 +18,7 @@ open Lwt.Infix
 open Printf
 
 type +'a io = 'a Lwt.t
+type id = string
 
 (** IO operation errors *)
 type error = [
@@ -34,7 +35,7 @@ type stats = {
 }
 
 type t = {
-  id: string;
+  id: id;
   buf_sz: int;
   mutable active: bool;
   mac: Macaddr.t;
@@ -42,14 +43,9 @@ type t = {
   dev: Lwt_vmnet.t;
 }
 
-type vif_info = {
-  vif_id: string;
-  vif_fd: Unix.file_descr;
-}
-
 let devices = Hashtbl.create 1
 
-let connect devname =
+let connect _ =
   Lwt_vmnet.init () >|= fun dev ->
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
@@ -71,8 +67,6 @@ let disconnect t =
 type macaddr = Macaddr.t
 type page_aligned_buffer = Io_page.t
 type buffer = Cstruct.t
-
-let macaddr t = t.mac
 
 (* Input a frame, and block if nothing is available *)
 let read t page =

@@ -1,29 +1,6 @@
-# OASIS_START
-# DO NOT EDIT (digest: 32744941052d7eb85c35878891e93354)
-# Ignore VCS directories, you can use the same kind of rule outside
-# OASIS_START/STOP if you want to exclude directories that contains
-# useless stuff for the build process
-true: annot, bin_annot
-<**/.svn>: -traverse
-<**/.svn>: not_hygienic
-".bzr": -traverse
-".bzr": not_hygienic
-".hg": -traverse
-".hg": not_hygienic
-".git": -traverse
-".git": not_hygienic
-"_darcs": -traverse
-"_darcs": not_hygienic
-# Library mirage-net-macosx
-"lib/mirage-net-macosx.cmxs": use_mirage-net-macosx
-<lib/*.ml{,i,y}>: pkg_cstruct
-<lib/*.ml{,i,y}>: pkg_io-page
-<lib/*.ml{,i,y}>: pkg_io-page.unix
-<lib/*.ml{,i,y}>: pkg_ipaddr
-<lib/*.ml{,i,y}>: pkg_lwt
-<lib/*.ml{,i,y}>: pkg_lwt.unix
-<lib/*.ml{,i,y}>: pkg_mirage-types
-<lib/*.ml{,i,y}>: pkg_threads
-<lib/*.ml{,i,y}>: pkg_vmnet.lwt
-# OASIS_STOP
-true: debug, annot, bin_annot
+true: bin_annot, debug, safe_string
+true: warn_error(+1..49), warn(A-4-41-44)
+true: short_paths
+
+true: package(cstruct io-page io-page.unix ipaddr lwt lwt.unix mirage-types)
+true: package(vmnet.lwt threads), thread
