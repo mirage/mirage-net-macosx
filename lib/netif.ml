@@ -15,41 +15,25 @@
  *)
 
 open Lwt.Infix
-open Printf
+open Result
+
+let src = Logs.Src.create "net-macosx" ~doc:"OSX network device"
+module Log = (val Logs.src_log src : Logs.LOG)
 
 type +'a io = 'a Lwt.t
-
-(** IO operation errors *)
-type error = [
-  | `Unknown of string (** an undiagnosed error *)
-  | `Unimplemented     (** operation not yet implemented in the code *)
-  | `Disconnected      (** the device has been previously disconnected *)
-]
-
-type stats = {
-  mutable rx_bytes : int64;
-  mutable rx_pkts : int32;
-  mutable tx_bytes : int64;
-  mutable tx_pkts : int32;
-}
 
 type t = {
   id: string;
   buf_sz: int;
   mutable active: bool;
   mac: Macaddr.t;
-  stats : stats;
+  stats : V1.Network.stats;
   dev: Lwt_vmnet.t;
-}
-
-type vif_info = {
-  vif_id: string;
-  vif_fd: Unix.file_descr;
 }
 
 let devices = Hashtbl.create 1
 
-let connect devname =
+let connect _ =
   Lwt_vmnet.init () >|= fun dev ->
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
@@ -57,14 +41,14 @@ let connect devname =
   let buf_sz = 4096 in (* TODO get from vmnet *)
   let t = {
     id=devname; dev; active; mac; buf_sz;
-    stats= { rx_bytes=0L;rx_pkts=0l;
+    stats= { V1.Network.rx_bytes=0L;rx_pkts=0l;
              tx_bytes=0L; tx_pkts=0l }; } in
   Hashtbl.add devices devname t;
-  printf "Netif: connect %s\n%!" devname;
+  Log.info (fun l -> l "Netif: connect %s" devname);
   t
 
 let disconnect t =
-  printf "Netif: disconnect %s\n%!" t.id;
+  Log.info (fun l -> l "Netif: disconnect %s" t.id);
   (* TODO *)
   Lwt.return_unit
 
@@ -72,15 +56,13 @@ type macaddr = Macaddr.t
 type page_aligned_buffer = Io_page.t
 type buffer = Cstruct.t
 
-let macaddr t = t.mac
-
 (* Input a frame, and block if nothing is available *)
 let read t page =
   Lwt.catch (fun () -> Lwt_vmnet.read t.dev page >|= fun c -> `Ok c)
     (function
       | Lwt_vmnet.Error e ->
-        Printf.printf "read: %s\n%!"
-          (Sexplib.Sexp.to_string_hum (Lwt_vmnet.sexp_of_error e));
+        Log.err (fun l -> l "read: %s"
+          (Sexplib.Sexp.to_string_hum (Lwt_vmnet.sexp_of_error e)));
         Lwt.return (`Error `Disconnected)
       | e -> Lwt.fail e)
 
@@ -91,33 +73,36 @@ let rec listen t fn =
     Lwt.catch (fun () ->
         let page = Io_page.get_buf () in
         read t page >>= function
-        | `Error _ ->
-          printf "Netif: error, terminating listen loop\n%!";
-          Lwt.return ()
+        | `Error e ->
+          Log.err (fun l -> l "Netif: error, terminating listen loop");
+          Lwt.return (Error e)
         | `Ok buf ->
           Lwt.ignore_result (
             Lwt.catch (fun () -> fn buf)
               (fun exn ->
-                 Lwt.return
-                   (printf "EXN: %s bt: %s\n%!" (Printexc.to_string exn)
-                      (Printexc.get_backtrace())))
+                 Log.err (fun l -> l "EXN: %s bt: %s" (Printexc.to_string exn)
+                      (Printexc.get_backtrace()));
+                 Lwt.return_unit)
           );
           listen t fn
       ) (function exn ->
-        eprintf "[netif-input] error : %s\n%!" (Printexc.to_string exn);
+        Log.err (fun l -> l "[netif-input] error : %s" (Printexc.to_string exn));
         listen t fn)
-  | false -> Lwt.return_unit
+  | false ->
+    Lwt.return (Error `Disconnected)
 
 (* Transmit a packet from an Io_page *)
 let write t page =
+  let open V1.Network in
   Lwt_vmnet.write t.dev page >|= fun () ->
   t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
-  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len)
+  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len);
+  Ok ()
 
 (* TODO use writev: but do a copy for now *)
 let writev t pages =
   match pages with
-  | []     -> Lwt.return_unit
+  | []     -> Lwt.return (Ok ())
   | [page] -> write t page
   | pages  ->
     let page = Io_page.(to_cstruct (get 1)) in
@@ -135,6 +120,7 @@ let mac t = t.mac
 let get_stats_counters t = t.stats
 
 let reset_stats_counters t =
+  let open V1.Network in
   t.stats.rx_bytes <- 0L;
   t.stats.rx_pkts  <- 0l;
   t.stats.tx_bytes <- 0L;

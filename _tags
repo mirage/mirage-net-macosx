@@ -3,4 +3,4 @@ true: warn_error(+1..49), warn(A-4-41-44)
 true: short_paths
 
 true: package(cstruct io-page io-page.unix ipaddr lwt lwt.unix mirage-types)
-true: package(vmnet.lwt threads), thread
+true: package(logs vmnet.lwt threads), thread

@@ -1,4 +1,4 @@
 PKG cstruct lwt lwt.unix mirage-types vmnet.lwt io-page io-page.unix
-PKG ipaddr threads
+PKG ipaddr threads logs
 S _build
 B src

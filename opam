@@ -15,6 +15,7 @@ depends: [
   "topkg"     {build}
   "cstruct" {>= "1.4.0"}
   "sexplib"
+  "logs"
   "lwt" {>= "2.4.3"}
   "mirage-types" {>= "3.0.0"}
   "mirage-types-lwt"
