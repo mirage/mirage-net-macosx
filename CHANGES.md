@@ -1,5 +1,6 @@
 ### 1.2.0 (2016-11-11)
 
+- Switch to topkg (#11, @hannesm and @samoht)
 - Remove camlp4 (#7, @samoht)
 
 ### 1.1.0 (2015-03-04)
