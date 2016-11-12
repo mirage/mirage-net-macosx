@@ -2,5 +2,6 @@ true: bin_annot, safe_string
 true: warn_error(+1..49), warn(A-4-41-44)
 true: short_paths
 
+"lib": include
 true: package(cstruct io-page io-page.unix ipaddr lwt lwt.unix mirage-types)
 true: package(sexplib vmnet.lwt threads), thread
