@@ -4,4 +4,4 @@ requires = "cstruct lwt lwt.unix mirage-types vmnet.lwt io-page io-page.unix ipa
 archive(byte)   = "mirage-net-macosx.cma"
 archive(native) = "mirage-net-macosx.cmxa"
 plugin(byte)    = "mirage-net-macosx.cma"
-plugin(archive) = "mirage-net-macosx.cmxs"
+plugin(native)  = "mirage-net-macosx.cmxs"

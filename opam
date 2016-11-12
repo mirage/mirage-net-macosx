@@ -14,8 +14,10 @@ depends: [
   "ocamlfind" {build}
   "topkg"     {build}
   "cstruct" {>= "1.4.0"}
+  "ipaddr"
   "sexplib"
   "lwt" {>= "2.4.3"}
+  "mirage-types"
   "mirage-types-lwt"
   "io-page" {>= "1.4.0"}
   "vmnet"

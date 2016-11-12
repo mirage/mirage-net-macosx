@@ -3,8 +3,12 @@
 #require "topkg"
 open Topkg
 
+let opam =
+  let nolint = ["mirage-types-lwt"] in
+  Pkg.opam_file ~lint_deps_excluding:(Some nolint) "opam"
+
 let () =
-  Pkg.describe "mirage-net-macosx" @@ fun c ->
+  Pkg.describe ~opams:[opam] "mirage-net-macosx" @@ fun c ->
   Ok [
     Pkg.mllib "lib/mirage-net-macosx.mllib";
   ]
