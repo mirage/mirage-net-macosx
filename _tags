@@ -4,4 +4,4 @@ true: short_paths
 
 "lib": include
 true: package(cstruct io-page io-page.unix ipaddr lwt lwt.unix mirage-types)
-true: package(sexplib vmnet.lwt threads), thread
+true: package(sexplib logs vmnet.lwt threads), thread
