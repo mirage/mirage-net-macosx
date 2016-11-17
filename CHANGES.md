@@ -1,3 +1,5 @@
+- Adapt to MirageOS 3 types.
+
 ### 1.2.0 (2016-11-11)
 
 - Remove camlp4 (#7, @samoht)
