@@ -12,7 +12,7 @@ build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
 
 depends: [
   "ocamlfind" {build}
-  "topkg"     {build}
+  "topkg" {build}
   "cstruct" {>= "1.4.0"}
   "ipaddr"
   "sexplib"
