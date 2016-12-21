@@ -22,6 +22,9 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 type +'a io = 'a Lwt.t
 
+type error = V1.Network.error
+let pp_error = Mirage_pp.pp_network_error
+
 type t = {
   id: string;
   buf_sz: int;
