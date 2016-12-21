@@ -10,5 +10,5 @@ let opam =
 let () =
   Pkg.describe ~opams:[opam] "mirage-net-macosx" @@ fun c ->
   Ok [
-    Pkg.mllib "lib/mirage-net-macosx.mllib";
+    Pkg.mllib "src/mirage-net-macosx.mllib";
   ]
