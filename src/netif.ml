@@ -88,7 +88,10 @@ let rec listen t fn =
                  Lwt.return_unit)
           );
           listen t fn
-      ) (function exn ->
+      ) (function
+        | Lwt.Canceled -> Log.info (fun l -> l "[netif-input] listen function canceled, terminating");
+          Lwt.return (Error `Disconnected)
+        | exn ->
         Log.err (fun l -> l "[netif-input] error : %s" (Printexc.to_string exn));
         listen t fn)
   | false ->
