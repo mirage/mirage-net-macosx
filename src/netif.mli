@@ -14,6 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-include V1_LWT.NETWORK
-
-val connect : string -> t io
+include Mirage_net_lwt.S
+val connect : string -> t Lwt.t
