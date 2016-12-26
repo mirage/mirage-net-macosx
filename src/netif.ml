@@ -16,21 +16,22 @@
 
 open Lwt.Infix
 open Result
+open Mirage_net
 
 let src = Logs.Src.create "net-macosx" ~doc:"OSX network device"
 module Log = (val Logs.src_log src : Logs.LOG)
 
 type +'a io = 'a Lwt.t
 
-type error = V1.Network.error
-let pp_error = Mirage_pp.pp_network_error
+type error = Mirage_net.error
+let pp_error = Mirage_net.pp_error
 
 type t = {
   id: string;
   buf_sz: int;
   mutable active: bool;
   mac: Macaddr.t;
-  stats : V1.Network.stats;
+  stats : Mirage_net.stats;
   dev: Lwt_vmnet.t;
 }
 
@@ -43,9 +44,10 @@ let connect _ =
   let active = true in
   let buf_sz = 4096 in (* TODO get from vmnet *)
   let t = {
-    id=devname; dev; active; mac; buf_sz;
-    stats= { V1.Network.rx_bytes=0L;rx_pkts=0l;
-             tx_bytes=0L; tx_pkts=0l }; } in
+    id =devname; dev; active; mac; buf_sz;
+    stats = { rx_bytes=0L;rx_pkts=0l;
+              tx_bytes=0L; tx_pkts=0l }}
+  in
   Hashtbl.add devices devname t;
   Log.info (fun l -> l "Netif: connect %s" devname);
   t
@@ -99,7 +101,7 @@ let rec listen t fn =
 
 (* Transmit a packet from an Io_page *)
 let write t page =
-  let open V1.Network in
+  let open Mirage_net in
   Lwt_vmnet.write t.dev page >|= fun () ->
   t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
   t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len);
@@ -126,7 +128,6 @@ let mac t = t.mac
 let get_stats_counters t = t.stats
 
 let reset_stats_counters t =
-  let open V1.Network in
   t.stats.rx_bytes <- 0L;
   t.stats.rx_pkts  <- 0l;
   t.stats.tx_bytes <- 0L;
