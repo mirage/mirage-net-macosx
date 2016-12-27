@@ -74,30 +74,34 @@ let read t page =
 (* Loop and listen for packets permanently *)
 let rec listen t fn =
   match t.active with
-  | true ->
+  | false -> Lwt.return (Error `Disconnected)
+  | true  ->
     Lwt.catch (fun () ->
         let page = Io_page.get_buf () in
-        read t page >>= function
+        read t page >|= function
         | `Error e ->
           Log.err (fun l -> l "Netif: error, terminating listen loop");
-          Lwt.return (Error e)
+          Error e
         | `Ok buf ->
           Lwt.ignore_result (
             Lwt.catch (fun () -> fn buf)
               (fun exn ->
-                 Log.err (fun l -> l "EXN: %s bt: %s" (Printexc.to_string exn)
-                      (Printexc.get_backtrace()));
+                 Log.err (fun l ->
+                     l "EXN: %a bt: %s" Fmt.exn exn (Printexc.get_backtrace()));
                  Lwt.return_unit)
           );
-          listen t fn
+          Ok ()
       ) (function
-        | Lwt.Canceled -> Log.info (fun l -> l "[netif-input] listen function canceled, terminating");
+        | Lwt.Canceled ->
+          Log.info (fun l ->
+              l "[netif-input] listen function canceled, terminating");
           Lwt.return (Error `Disconnected)
         | exn ->
-        Log.err (fun l -> l "[netif-input] error : %s" (Printexc.to_string exn));
-        listen t fn)
-  | false ->
-    Lwt.return (Error `Disconnected)
+          Log.err (fun l -> l "[netif-input] error : %a" Fmt.exn exn);
+          Lwt.return (Ok ()))
+    >>= function
+    | Ok ()        -> listen t fn
+    | Error _ as e -> Lwt.return e
 
 (* Transmit a packet from an Io_page *)
 let write t page =
