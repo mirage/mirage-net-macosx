@@ -1,4 +1,7 @@
+### 1.3.0 (unreleased)
+
 - Adapt to MirageOS 3 types.
+- Bugfixes for `listen`: be tail-recursive (#19, by @samoht), don't restart when canceled (#17, by @yomimono)
 
 ### 1.2.0 (2016-11-11)
 
