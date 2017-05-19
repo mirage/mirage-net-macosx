@@ -8,11 +8,13 @@ dev-repo:    "https://github.com/mirage/mirage-net-macosx.git"
 doc:         "https://mirage.github.io/mirage-net-macosx/"
 
 license: "ISC"
-build: ["ocaml" "pkg/pkg.ml" "build" "--pinned" "%{pinned}%"]
+build: [
+  [ "jbuilder" "build" "--only-packages=mirage-net-macosx" ]
+]
 
 depends: [
   "ocamlfind" {build}
-  "topkg" {build}
+  "jbuilder"  {build}
   "cstruct" {>= "1.4.0"}
   "ipaddr"
   "sexplib"
