@@ -1,3 +1,8 @@
+### 1.4.0 (2017-05-19)
+
+- Remove unnecessary mirage-dev travis remote (#22 by @yomimono)
+- Switch to jbuilder (#23 by @djs55)
+
 ### 1.3.0 (2017-01-19)
 
 - Adapt to MirageOS 3 types.
