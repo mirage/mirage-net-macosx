@@ -1,5 +1,4 @@
 opam-version: "1.2"
-
 maintainer:  "Anil Madhavapeddy <anil@recoil.org>"
 authors:     "Anil Madhavapeddy <anil@recoil.org>"
 homepage:    "https://github.com/mirage/mirage-net-macosx"
@@ -9,7 +8,8 @@ doc:         "https://mirage.github.io/mirage-net-macosx/"
 
 license: "ISC"
 build: [
-  [ "jbuilder" "build" "--only-packages=mirage-net-macosx" ]
+  [ "jbuilder" "subst" "-p" name ] {pinned}
+  [ "jbuilder" "build" "-p" name ]
 ]
 
 depends: [
@@ -26,3 +26,4 @@ depends: [
   "vmnet"
 ]
 tags: "org:mirage"
+available: [ocaml-version >= "4.03.0"]

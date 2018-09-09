@@ -15,7 +15,6 @@
  *)
 
 open Lwt.Infix
-open Result
 open Mirage_net
 
 let src = Logs.Src.create "net-macosx" ~doc:"OSX network device"
