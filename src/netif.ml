@@ -30,24 +30,23 @@ type t = {
   buf_sz: int;
   mutable active: bool;
   mac: Macaddr.t;
+  mtu: int;
   stats : Mirage_net.stats;
   dev: Lwt_vmnet.t;
 }
-
-let devices = Hashtbl.create 1
 
 let connect _ =
   Lwt_vmnet.init () >|= fun dev ->
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
+  let mtu = Lwt_vmnet.max_packet_size dev in
   let active = true in
   let buf_sz = 4096 in (* TODO get from vmnet *)
   let t = {
-    id =devname; dev; active; mac; buf_sz;
+    id =devname; dev; active; mac; mtu; buf_sz;
     stats = { rx_bytes=0L;rx_pkts=0l;
               tx_bytes=0L; tx_pkts=0l }}
   in
-  Hashtbl.add devices devname t;
   Log.info (fun l -> l "Netif: connect %s" devname);
   t
 
@@ -56,13 +55,15 @@ let disconnect t =
   (* TODO *)
   Lwt.return_unit
 
+let allocate_frame ?size t =
+  Cstruct.create (match size with None -> t.mtu | Some x -> min x t.mtu)
+
 type macaddr = Macaddr.t
-type page_aligned_buffer = Io_page.t
 type buffer = Cstruct.t
 
 (* Input a frame, and block if nothing is available *)
-let read t page =
-  Lwt.catch (fun () -> Lwt_vmnet.read t.dev page >|= fun c -> `Ok c)
+let read t buf =
+  Lwt.catch (fun () -> Lwt_vmnet.read t.dev buf >|= fun c -> `Ok c)
     (function
       | Lwt_vmnet.Error e ->
         Log.err (fun l -> l "read: %s"
@@ -76,8 +77,8 @@ let rec listen t fn =
   | false -> Lwt.return (Error `Disconnected)
   | true  ->
     Lwt.catch (fun () ->
-        let page = Io_page.get_buf () in
-        read t page >|= function
+        let buf = allocate_frame t in
+        read t buf >|= function
         | `Error e ->
           Log.err (fun l -> l "Netif: error, terminating listen loop");
           Error e
@@ -102,31 +103,23 @@ let rec listen t fn =
     | Ok ()        -> listen t fn
     | Error _ as e -> Lwt.return e
 
-(* Transmit a packet from an Io_page *)
-let write t page =
+let write t buf =
   let open Mirage_net in
-  Lwt_vmnet.write t.dev page >|= fun () ->
+  Lwt_vmnet.write t.dev buf >|= fun () ->
   t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
-  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len);
+  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int buf.Cstruct.len);
   Ok ()
 
 (* TODO use writev: but do a copy for now *)
-let writev t pages =
-  match pages with
-  | []     -> Lwt.return (Ok ())
-  | [page] -> write t page
-  | pages  ->
-    let page = Io_page.(to_cstruct (get 1)) in
-    let off = ref 0 in
-    List.iter (fun p ->
-        let len = Cstruct.len p in
-        Cstruct.blit p 0 page !off len;
-        off := !off + len;
-      ) pages;
-    let v = Cstruct.sub page 0 !off in
-    write t v
+let writev t bufs =
+  match bufs with
+  | []    -> Lwt.return (Ok ())
+  | [buf] -> write t buf
+  | bufs  -> write t (Cstruct.concat bufs)
 
 let mac t = t.mac
+
+let mtu t = t.mtu
 
 let get_stats_counters t = t.stats
 

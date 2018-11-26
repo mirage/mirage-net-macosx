@@ -15,14 +15,12 @@ build: [
 depends: [
   "ocaml" {>= "4.03.0"}
   "jbuilder"  {build}
-  "cstruct" {>= "1.4.0"}
+  "cstruct" {>= "1.7.0"}
   "macaddr"
   "sexplib"
   "logs"
   "lwt" {>= "2.4.3"}
-  "mirage-net-lwt" {>= "1.0.0"}
-  "io-page" {>= "2.0.0"}
-  "io-page-unix" {>= "2.0.0"}
+  "mirage-net-lwt" {>= "2.0.0"}
   "vmnet"
 ]
 tags: "org:mirage"
