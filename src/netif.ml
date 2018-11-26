@@ -22,47 +22,43 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 type +'a io = 'a Lwt.t
 
-type error = Mirage_net.error
-let pp_error = Mirage_net.pp_error
+type error = Mirage_net.Net.error
+let pp_error = Mirage_net.Net.pp_error
 
 type t = {
   id: string;
-  buf_sz: int;
   mutable active: bool;
   mac: Macaddr.t;
+  mtu: int;
   stats : Mirage_net.stats;
   dev: Lwt_vmnet.t;
 }
-
-let devices = Hashtbl.create 1
 
 let connect _ =
   Lwt_vmnet.init () >|= fun dev ->
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
+  let mtu = Lwt_vmnet.max_packet_size dev in
   let active = true in
-  let buf_sz = 4096 in (* TODO get from vmnet *)
   let t = {
-    id =devname; dev; active; mac; buf_sz;
+    id = devname; dev; active; mac; mtu;
     stats = { rx_bytes=0L;rx_pkts=0l;
               tx_bytes=0L; tx_pkts=0l }}
   in
-  Hashtbl.add devices devname t;
   Log.info (fun l -> l "Netif: connect %s" devname);
   t
 
 let disconnect t =
   Log.info (fun l -> l "Netif: disconnect %s" t.id);
-  (* TODO *)
+  t.active <- false;
   Lwt.return_unit
 
 type macaddr = Macaddr.t
-type page_aligned_buffer = Io_page.t
 type buffer = Cstruct.t
 
 (* Input a frame, and block if nothing is available *)
-let read t page =
-  Lwt.catch (fun () -> Lwt_vmnet.read t.dev page >|= fun c -> `Ok c)
+let read t buf =
+  Lwt.catch (fun () -> Lwt_vmnet.read t.dev buf >|= fun c -> `Ok c)
     (function
       | Lwt_vmnet.Error e ->
         Log.err (fun l -> l "read: %s"
@@ -76,8 +72,8 @@ let rec listen t fn =
   | false -> Lwt.return (Error `Disconnected)
   | true  ->
     Lwt.catch (fun () ->
-        let page = Io_page.get_buf () in
-        read t page >|= function
+        let buf = Cstruct.create (14 + t.mtu) in
+        read t buf >|= function
         | `Error e ->
           Log.err (fun l -> l "Netif: error, terminating listen loop");
           Error e
@@ -102,31 +98,26 @@ let rec listen t fn =
     | Ok ()        -> listen t fn
     | Error _ as e -> Lwt.return e
 
-(* Transmit a packet from an Io_page *)
-let write t page =
-  let open Mirage_net in
-  Lwt_vmnet.write t.dev page >|= fun () ->
-  t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
-  t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int page.Cstruct.len);
-  Ok ()
-
-(* TODO use writev: but do a copy for now *)
-let writev t pages =
-  match pages with
-  | []     -> Lwt.return (Ok ())
-  | [page] -> write t page
-  | pages  ->
-    let page = Io_page.(to_cstruct (get 1)) in
-    let off = ref 0 in
-    List.iter (fun p ->
-        let len = Cstruct.len p in
-        Cstruct.blit p 0 page !off len;
-        off := !off + len;
-      ) pages;
-    let v = Cstruct.sub page 0 !off in
-    write t v
+let write t ?size fillf =
+  let size = match size with None -> t.mtu | Some s -> s in
+  if size > t.mtu then
+    Lwt.return (Error `Exceeds_mtu)
+  else
+    let size = 14 + size in
+    let buf = Cstruct.create size in
+    let len = 14 + fillf buf in
+    if len > size then
+      Lwt.return (Error `Invalid_length)
+    else
+      let buf = Cstruct.sub buf 0 len in
+      Lwt_vmnet.write t.dev buf >|= fun () ->
+      t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
+      t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int len);
+      Ok ()
 
 let mac t = t.mac
+
+let mtu t = t.mtu
 
 let get_stats_counters t = t.stats
 
