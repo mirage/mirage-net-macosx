@@ -8,13 +8,13 @@ doc:         "https://mirage.github.io/mirage-net-macosx/"
 
 license: "ISC"
 build: [
-  [ "jbuilder" "subst" "-p" name ] {pinned}
-  [ "jbuilder" "build" "-p" name ]
+  [ "dune" "subst" ] {pinned}
+  [ "dune" "build" "-p" name "-j" jobs ]
 ]
 
 depends: [
   "ocaml" {>= "4.03.0"}
-  "jbuilder"  {build}
+  "dune"  {build & >= "1.0"}
   "cstruct" {>= "1.4.0"}
   "macaddr"
   "sexplib"
@@ -27,4 +27,11 @@ depends: [
 ]
 tags: "org:mirage"
 
-synopsis: "MacOS X implementation of the Mirage_net_lwt interface"
+synopsis: "MacOS implementation of the Mirage_net_lwt interface"
+description: """
+This interface exposes raw Ethernet frames using the
+[Vmnet](https://github.com/mirage/ocaml-vmnet) framework that
+is available on MacOS X Yosemite onwards.  It is suitable for
+use with an OCaml network stack such as the one found at
+<https://github.com/mirage/mirage-tcpip>.
+"""
