@@ -25,8 +25,6 @@ type +'a io = 'a Lwt.t
 type error = Mirage_net.Net.error
 let pp_error = Mirage_net.Net.pp_error
 
-let ethernet_header_size = 14
-
 type t = {
   id: string;
   mutable active: bool;
@@ -69,12 +67,12 @@ let read t buf =
       | e -> Lwt.fail e)
 
 (* Loop and listen for packets permanently *)
-let rec listen t fn =
+let rec listen t ~header_size fn =
   match t.active with
   | false -> Lwt.return (Error `Disconnected)
   | true  ->
     Lwt.catch (fun () ->
-        let buf = Cstruct.create (ethernet_header_size + t.mtu) in
+        let buf = Cstruct.create (header_size + t.mtu) in
         read t buf >|= function
         | `Error e ->
           Log.err (fun l -> l "Netif: error, terminating listen loop");
@@ -97,25 +95,20 @@ let rec listen t fn =
           Log.err (fun l -> l "[netif-input] error : %a" Fmt.exn exn);
           Lwt.return (Ok ()))
     >>= function
-    | Ok ()        -> listen t fn
+    | Ok ()        -> (listen[@tailcall]) t ~header_size fn
     | Error _ as e -> Lwt.return e
 
-let write t ?size fillf =
-  let size = match size with None -> t.mtu | Some s -> s in
-  if size > t.mtu then
-    Lwt.return (Error `Exceeds_mtu)
+let write t ~size fillf =
+  let buf = Cstruct.create size in
+  let len = fillf buf in
+  if len > size then
+    Lwt.return (Error `Invalid_length)
   else
-    let size = ethernet_header_size + size in
-    let buf = Cstruct.create size in
-    let len = ethernet_header_size + fillf buf in
-    if len > size then
-      Lwt.return (Error `Invalid_length)
-    else
-      let buf = Cstruct.sub buf 0 len in
-      Lwt_vmnet.write t.dev buf >|= fun () ->
-      t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
-      t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int len);
-      Ok ()
+    let buf = Cstruct.sub buf 0 len in
+    Lwt_vmnet.write t.dev buf >|= fun () ->
+    t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
+    t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int len);
+    Ok ()
 
 let mac t = t.mac
 
