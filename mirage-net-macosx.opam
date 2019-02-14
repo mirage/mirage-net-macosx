@@ -21,7 +21,7 @@ depends: [
   "logs"
   "lwt" {>= "2.4.3"}
   "mirage-net-lwt" {>= "2.0.0"}
-  "vmnet"
+  "vmnet" {>= "1.4.0"}
 ]
 tags: "org:mirage"
 

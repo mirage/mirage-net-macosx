@@ -25,6 +25,8 @@ type +'a io = 'a Lwt.t
 type error = Mirage_net.Net.error
 let pp_error = Mirage_net.Net.pp_error
 
+let ethernet_header_size = 14
+
 type t = {
   id: string;
   mutable active: bool;
@@ -38,7 +40,7 @@ let connect _ =
   Lwt_vmnet.init () >|= fun dev ->
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
-  let mtu = Lwt_vmnet.max_packet_size dev in
+  let mtu = Lwt_vmnet.mtu dev in
   let active = true in
   let t = {
     id = devname; dev; active; mac; mtu;
@@ -72,7 +74,7 @@ let rec listen t fn =
   | false -> Lwt.return (Error `Disconnected)
   | true  ->
     Lwt.catch (fun () ->
-        let buf = Cstruct.create (14 + t.mtu) in
+        let buf = Cstruct.create (ethernet_header_size + t.mtu) in
         read t buf >|= function
         | `Error e ->
           Log.err (fun l -> l "Netif: error, terminating listen loop");
@@ -103,9 +105,9 @@ let write t ?size fillf =
   if size > t.mtu then
     Lwt.return (Error `Exceeds_mtu)
   else
-    let size = 14 + size in
+    let size = ethernet_header_size + size in
     let buf = Cstruct.create size in
-    let len = 14 + fillf buf in
+    let len = ethernet_header_size + fillf buf in
     if len > size then
       Lwt.return (Error `Invalid_length)
     else
