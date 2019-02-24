@@ -1,3 +1,8 @@
+## v1.6.0 (2019-02-24)
+
+- adapt to mirage-net 2.0.0 change (@hannesm)
+- use Vmnet.mtu (thanks to @avsm)
+
 ## v1.5.0 (2019-01-31)
 
 - Switch to Dune from jbuilder (@avsm)
