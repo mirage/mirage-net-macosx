@@ -30,6 +30,7 @@ type t = {
   mutable active: bool;
   mac: Macaddr.t;
   mtu: int;
+  max_packet_size: int;
   stats : Mirage_net.stats;
   dev: Lwt_vmnet.t;
 }
@@ -39,9 +40,10 @@ let connect _ =
   let devname = "unknown" in (* TODO fix *)
   let mac = Lwt_vmnet.mac dev in
   let mtu = Lwt_vmnet.mtu dev in
+  let max_packet_size = Lwt_vmnet.max_packet_size dev in
   let active = true in
   let t = {
-    id = devname; dev; active; mac; mtu;
+    id = devname; dev; active; mac; mtu; max_packet_size;
     stats = { rx_bytes=0L;rx_pkts=0l;
               tx_bytes=0L; tx_pkts=0l }}
   in
@@ -72,7 +74,7 @@ let rec listen t ~header_size fn =
   | false -> Lwt.return (Error `Disconnected)
   | true  ->
     Lwt.catch (fun () ->
-        let buf = Cstruct.create (header_size + t.mtu) in
+        let buf = Cstruct.create t.max_packet_size in
         read t buf >|= function
         | `Error e ->
           Log.err (fun l -> l "Netif: error, terminating listen loop");
