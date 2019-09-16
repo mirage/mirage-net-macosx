@@ -1,3 +1,8 @@
+## v1.7.0 (2019-09-16)
+
+- Use max_buffer_size as buffer length as required by Vmnet (@magnuss)
+- Update to use latest ocaml-vmnet to improve error handling (@magnuss)
+
 ## v1.6.0 (2019-02-24)
 
 - adapt to mirage-net 2.0.0 change (@hannesm)
