@@ -39,11 +39,8 @@ let connect _ =
   let mtu = Lwt_vmnet.mtu dev in
   let max_packet_size = Lwt_vmnet.max_packet_size dev in
   let active = true in
-  let t = {
-    id = devname; dev; active; mac; mtu; max_packet_size;
-    stats = { rx_bytes=0L;rx_pkts=0l;
-              tx_bytes=0L; tx_pkts=0l }}
-  in
+  let stats = Mirage_net.Stats.create () in
+  let t = { id = devname; dev; active; mac; mtu; max_packet_size; stats } in
   Log.info (fun l -> l "Netif: connect %s" devname);
   t
 
@@ -54,12 +51,12 @@ let disconnect t =
 
 (* Input a frame, and block if nothing is available *)
 let read t buf =
-  Lwt.catch (fun () -> Lwt_vmnet.read t.dev buf >|= fun c -> `Ok c)
+  Lwt.catch (fun () -> Lwt_vmnet.read t.dev buf >|= fun c -> Ok c)
     (function
       | Lwt_vmnet.Error e ->
         Log.err (fun l -> l "read: %s"
           (Sexplib.Sexp.to_string_hum (Lwt_vmnet.sexp_of_error e)));
-        Lwt.return (`Error `Disconnected)
+        Lwt.return (Error `Disconnected)
       | e -> Lwt.fail e)
 
 (* Loop and listen for packets permanently *)
@@ -70,10 +67,11 @@ let rec listen t ~header_size fn =
     Lwt.catch (fun () ->
         let buf = Cstruct.create t.max_packet_size in
         read t buf >|= function
-        | `Error e ->
+        | Error e ->
           Log.err (fun l -> l "Netif: error, terminating listen loop");
           Error e
-        | `Ok buf ->
+        | Ok buf ->
+          Mirage_net.Stats.rx t.stats (Int64.of_int (Cstruct.len buf));
           Lwt.ignore_result (
             Lwt.catch (fun () -> fn buf)
               (fun exn ->
@@ -102,8 +100,7 @@ let write t ~size fillf =
   else
     let buf = Cstruct.sub buf 0 len in
     Lwt_vmnet.write t.dev buf >|= fun () ->
-    t.stats.tx_pkts <- Int32.succ t.stats.tx_pkts;
-    t.stats.tx_bytes <- Int64.add t.stats.tx_bytes (Int64.of_int len);
+    Mirage_net.Stats.tx t.stats (Int64.of_int len);
     Ok ()
 
 let mac t = t.mac
@@ -112,8 +109,4 @@ let mtu t = t.mtu
 
 let get_stats_counters t = t.stats
 
-let reset_stats_counters t =
-  t.stats.rx_bytes <- 0L;
-  t.stats.rx_pkts  <- 0l;
-  t.stats.tx_bytes <- 0L;
-  t.stats.tx_pkts  <- 0l
+let reset_stats_counters t = Mirage_net.Stats.reset t.stats
