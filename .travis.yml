@@ -5,10 +5,10 @@ script: bash -ex .travis-opam.sh
 env:
   global:
   - PACKAGE="mirage-net-macosx"
-  - EXTRA_REMOTES="https://github.com/mirage/mirage-dev.git"
   matrix:
-  - OCAML_VERSION=4.04
   - OCAML_VERSION=4.06
   - OCAML_VERSION=4.07
+  - OCAML_VERSION=4.08
+  - OCAML_VERSION=4.09
 os:
   - osx

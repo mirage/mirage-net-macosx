@@ -15,12 +15,9 @@
  *)
 
 open Lwt.Infix
-open Mirage_net
 
 let src = Logs.Src.create "net-macosx" ~doc:"OSX network device"
 module Log = (val Logs.src_log src : Logs.LOG)
-
-type +'a io = 'a Lwt.t
 
 type error = Mirage_net.Net.error
 let pp_error = Mirage_net.Net.pp_error
@@ -54,9 +51,6 @@ let disconnect t =
   Log.info (fun l -> l "Netif: disconnect %s" t.id);
   t.active <- false;
   Lwt.return_unit
-
-type macaddr = Macaddr.t
-type buffer = Cstruct.t
 
 (* Input a frame, and block if nothing is available *)
 let read t buf =
