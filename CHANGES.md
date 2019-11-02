@@ -1,3 +1,7 @@
+## v1.8.0 (2019-11-02)
+
+- Adapt to mirage-net 3.0.0 API changes (@hannesm)
+
 ## v1.7.0 (2019-09-16)
 
 - Use max_buffer_size as buffer length as required by Vmnet (@magnuss)
