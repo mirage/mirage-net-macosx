@@ -14,5 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-include Mirage_net_lwt.S
+include Mirage_net.S
 val connect : string -> t Lwt.t
