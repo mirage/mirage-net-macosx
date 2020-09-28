@@ -81,6 +81,7 @@ let rec listen t ~header_size fn =
           );
           Ok ()
       ) (function
+        | Out_of_memory -> Lwt.fail Out_of_memory
         | Lwt.Canceled ->
           Log.info (fun l ->
               l "[netif-input] listen function canceled, terminating");
