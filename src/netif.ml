@@ -59,6 +59,15 @@ let read t buf =
         Lwt.return (Error `Disconnected)
       | e -> Lwt.fail e)
 
+let safe_apply fn buf =
+  Lwt.catch (fun () -> fn buf)
+    (function
+      | Out_of_memory -> Lwt.fail Out_of_memory
+      | exn ->
+        Log.err (fun l ->
+            l "[listen] EXN: %a bt: %s" Fmt.exn exn (Printexc.get_backtrace()));
+        Lwt.return_unit)
+
 (* Loop and listen for packets permanently *)
 let rec listen t ~header_size fn =
   match t.active with
@@ -72,16 +81,9 @@ let rec listen t ~header_size fn =
           Error e
         | Ok buf ->
           Mirage_net.Stats.rx t.stats (Int64.of_int (Cstruct.len buf));
-          Lwt.ignore_result (
-            Lwt.catch (fun () -> fn buf)
-              (fun exn ->
-                 Log.err (fun l ->
-                     l "EXN: %a bt: %s" Fmt.exn exn (Printexc.get_backtrace()));
-                 Lwt.return_unit)
-          );
+          Lwt.async (fun () -> safe_apply fn buf);
           Ok ()
       ) (function
-        | Out_of_memory -> Lwt.fail Out_of_memory
         | Lwt.Canceled ->
           Log.info (fun l ->
               l "[netif-input] listen function canceled, terminating");
