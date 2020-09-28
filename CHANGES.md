@@ -1,6 +1,6 @@
 ## v1.9.0 (2020-09-28)
 
-- Netif.listen: do not catch out of memory exception (#38 @hannesm)
+- Netif.listen: do not catch out of memory exception (#38 #39 @hannesm)
 
 ## v1.8.0 (2019-11-02)
 
