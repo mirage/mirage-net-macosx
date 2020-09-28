@@ -74,14 +74,15 @@ let rec listen t ~header_size fn =
           Mirage_net.Stats.rx t.stats (Int64.of_int (Cstruct.len buf));
           Lwt.ignore_result (
             Lwt.catch (fun () -> fn buf)
-              (fun exn ->
-                 Log.err (fun l ->
-                     l "EXN: %a bt: %s" Fmt.exn exn (Printexc.get_backtrace()));
-                 Lwt.return_unit)
+              (function
+                | Out_of_memory -> Lwt.fail Out_of_memory
+                | exn ->
+                  Log.err (fun l ->
+                      l "EXN: %a bt: %s" Fmt.exn exn (Printexc.get_backtrace()));
+                  Lwt.return_unit)
           );
           Ok ()
       ) (function
-        | Out_of_memory -> Lwt.fail Out_of_memory
         | Lwt.Canceled ->
           Log.info (fun l ->
               l "[netif-input] listen function canceled, terminating");
