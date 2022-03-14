@@ -1,3 +1,8 @@
+## v1.10.0 (2022-03-14)
+
+- Do not Lwt.catch on the listen callback (#40, @hannesm)
+- Do not use the deprecated Cstruct.len (#41, @samoht)
+
 ## v1.9.0 (2020-09-28)
 
 - Netif.listen: do not catch out of memory exception (#38 #39 @hannesm)
