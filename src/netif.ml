@@ -71,7 +71,7 @@ let rec listen t ~header_size fn =
           Log.err (fun l -> l "Netif: error, terminating listen loop");
           Error e
         | Ok buf ->
-          Mirage_net.Stats.rx t.stats (Int64.of_int (Cstruct.len buf));
+          Mirage_net.Stats.rx t.stats (Int64.of_int (Cstruct.length buf));
           Lwt.async (fun () -> fn buf);
           Ok ()
       ) (function
